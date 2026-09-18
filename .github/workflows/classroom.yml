@@ -1,0 +1,61 @@
+name: Autograding Tests
+
+on:
+  push:
+    branches-ignore: [classroom]
+  workflow_dispatch:
+  repository_dispatch:
+
+permissions:
+  checks: write
+  actions: read
+  contents: read
+
+jobs:
+  run-autograding-tests:
+    runs-on: ubuntu-latest
+    if: github.actor != 'github-classroom[bot]'
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: maven
+
+      - name: Constructor Test
+        id: test-constructor
+        uses: classroom-resources/autograding-command-grader@v1
+        with:
+          test-name: Constructor Test
+          command: mvn -q test -Dtest=StudentConstructorTest -DfailIfNoTests=true
+          timeout: 10
+          max-score: 40
+
+      - name: Getter Test
+        id: test-getter
+        uses: classroom-resources/autograding-command-grader@v1
+        with:
+          test-name: Getter Test
+          command: mvn -q test -Dtest=StudentGetterTest -DfailIfNoTests=true
+          timeout: 10
+          max-score: 30
+
+      - name: GPA Predicate Test
+        id: test-gpa
+        uses: classroom-resources/autograding-command-grader@v1
+        with:
+          test-name: GPA Predicate Test
+          command: mvn -q test -Dtest=StudentGpaTest -DfailIfNoTests=true
+          timeout: 10
+          max-score: 30
+
+      - name: Autograding Reporter
+        uses: classroom-resources/autograding-grading-reporter@v1
+        env:
+          TEST-CONSTRUCTOR_RESULTS: "${{ steps.test-constructor.outputs.result }}"
+          TEST-GETTER_RESULTS: "${{ steps.test-getter.outputs.result }}"
+          TEST-GPA_RESULTS: "${{ steps.test-gpa.outputs.result }}"
+        with:
+          runners: test-constructor,test-getter,test-gpa
